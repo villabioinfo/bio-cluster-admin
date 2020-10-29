@@ -1,0 +1,25 @@
+---
+# tasks file for bootstrap_local_keys
+- name: Who am I?
+  command: "whoami"
+  become: false 
+  register: normal_user
+  changed_when: false
+
+- name: User to be used
+  debug:
+    msg: "{{ normal_user.stdout }} - {{ item.username }}"
+  loop:
+    - "{{ users }}"
+
+- name: Generate local ssh key
+  community.crypto.openssh_keypair:
+    owner: "{{ normal_user.stdout }}"
+    path: "/home/{{ normal_user.stdout }}/.ssh/{{ item.username }}"
+    comment: "{{ inventory_hostname }} {{ item.username }}"
+    type: ed25519
+    state: present
+    force: false
+  become: false
+  loop: 
+    - "{{ users }}"
