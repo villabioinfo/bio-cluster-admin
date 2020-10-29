@@ -1,0 +1,6 @@
+---
+# handlers file for config_sshd
+- name: restart ssh
+  service:
+    name: sshd
+    state: restarted
