@@ -1,0 +1,57 @@
+---
+# tasks file for create_remote_user
+- name: determine available groups
+  getent:
+    database: group
+
+- name: determine available users
+  getent:
+    database: passwd
+
+# create group 1000 if not used
+- name: set group with gid 1000 to admin
+  group:
+    name: "{{ admin_user.0.username }}"
+    gid: 1000
+  when:
+    - "admin_user.0.username not in ansible_facts.getent_group"
+    - "'1000' not in item.value"
+  loop: "{{ ansible_facts.getent_group | dict2items }}"
+    
+# create group 1999 if not used
+- name: set group with gid 1999 when 1000 is used
+  group:
+    name: "{{ admin_user.0.username }}"
+    gid: 1999
+  when: 
+    - "admin_user.0.username not in ansible_facts.getent_group"
+    - "'1999' not in item.value"
+  loop: "{{ ansible_facts.getent_group | dict2items }}"
+
+- name: Register admin uid
+  shell: |
+    echo $(cat /etc/group | grep '^{{ admin_user.0.username }}' | cut -d':' -f3)
+  register: admin_uid
+  changed_when: false
+
+- name: Create remote users
+  ansible.builtin.user:
+    append: true
+    name: "{{ item.username }}"
+    group: "{{ item.username }}"
+    groups: "{{ item.groups }}"
+    shell: /bin/bash
+    state: present
+    system: false
+    uid: "{{ admin_uid.stdout }}"
+    password: "{{ item.password }}"
+  loop:
+    - "{{ users }}"
+
+# set sudo without pass
+- name: Edit sudoers
+  copy:
+    dest: "/etc/sudoers.d/{{ admin_user.0.username }}"
+    content: "{{ admin_user.0.username }}  ALL=(ALL)  NOPASSWD: ALL"
+
+
