@@ -1,0 +1,5 @@
+mendel:/home /home nfs nofail,noatime,nolock,actimeo=1800,rsize=8192,wsize=8192,timeo=14,intr,tcp 0 0
+mendel:/opt /opt nfs nofail,noatime,nolock,actimeo=1800,rsize=8192,wsize=8192,timeo=14,intr,tcp 0 0
+mendel:/usr/local /usr/local nfs nofail,noatime,nolock,actimeo=1800,rsize=8192,wsize=8192,timeo=14,intr,tcp 0 0
+mendel:/data/singularity_images /data/singularity_images nfs nofail,noatime,nolock,actimeo=1800,rsize=8192,wsize=8192,timeo=14,intr,tcp 0 0
+# chaves:/data/chaves /data/chaves nfs nofail,noatime,nolock,actimeo=1800,rsize=8192,wsize=8192,timeo=14,intr,tcp 0 0

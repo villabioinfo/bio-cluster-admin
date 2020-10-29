@@ -1,0 +1,54 @@
+---
+- name: Install NFS server dependencies
+  apt:
+    name:
+      - nfs-kernel-server
+      - nfs-common
+    state: latest
+
+- name: "Create /data/ host directorys"
+  file:
+    path: "/data/{{ item }}"
+    state: directory
+  with_items: "{{ play_hosts }}"
+
+- name: Add exports to /etc/exports
+  blockinfile:
+    path: /etc/exports
+    block: |
+      {% if etc_exports is defined %}
+      {{ etc_exports }}
+      {% endif %}
+    create: true
+    state: present
+  register: etc_exports_edit
+
+- name: Start NFS export service
+  tags: server
+  service:
+    name: nfs-kernel-server
+    state: started
+    enabled: true
+
+- name: Restart NFS server
+  tags: server
+  service:
+    name: nfs-kernel-server
+    state: restarted
+  when: etc_exports_edit.changed
+
+- name: Edit fstab on NFS client
+  blockinfile:
+    path: /etc/fstab
+    block: |
+      {% if etc_fstab_nfs is defined %}
+      {{ etc_fstab_nfs }}
+      {% endif %}
+    create: true
+    state: present
+  register: fstab_edit
+
+- name: Reload client mountpoints
+  command: |
+    mount -a
+  when: fstab_edit.changed
