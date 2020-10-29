@@ -1,4 +1,0 @@
-/home kiko(rw,sync,no_root_squash,no_subtree_check) chaves(rw,sync,no_root_squash,no_subtree_check)
-/opt kiko(rw,sync,no_root_squash,no_subtree_check) chaves(rw,sync,no_root_squash,no_subtree_check)
-/usr/local kiko(rw,sync,no_root_squash,no_subtree_check) chaves(rw,sync,no_root_squash,no_subtree_check)
-/data/singularity_images kiko(rw,sync,no_root_squash,no_subtree_check) chaves(rw,sync,no_root_squash,no_subtree_check)

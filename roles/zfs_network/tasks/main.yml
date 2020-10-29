@@ -44,6 +44,16 @@
   loop: "{{ zfs_pools }}"
   changed_when: false
 
+- name: Upgrade ZFS pool
+  command: >
+     zpool upgrade
+    {{ item["pool_name"] }}
+  when:
+    - item["pool_state"] | default('present') == 'absent'
+  loop: "{{ zfs_pools }}"
+  changed_when: false
+
+
 - name: set ZFS pool properties
   tags: debug
   command: >
