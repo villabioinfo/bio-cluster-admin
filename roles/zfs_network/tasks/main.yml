@@ -1,0 +1,72 @@
+---
+# tasks file for zfs_network
+- name: Install Deps
+  apt:
+    name: zfsutils-linux
+    state: latest
+
+- name: force import if system reinstalled
+  command: |
+    zpool destroy {{ item["pool_name"] }}
+  ignore_errors: true
+  changed_when: false
+  loop: "{{ zfs_pools }}"
+
+- name: check ZFS pool existance
+  tags: debug
+  command: |
+    zpool list -Ho name {{ item["pool_name"] }}
+  register: result_pool_list
+  ignore_errors: true
+  changed_when: false
+  loop: "{{ zfs_pools }}"
+
+- name: create ZFS pool
+  tags: debug
+  command: >
+    zpool create
+    {{ item["pool_name"] }}
+    {{ item["pool_type"] }}
+    {{ item["pool_disks"] | join (' ') }}
+  when:
+    - item["pool_state"] | default('present') == 'present'
+    - zfs_pools is defined
+  loop: "{{ zfs_pools }}"
+  ignore_errors: true
+  changed_when: false
+
+- name: destroy ZFS pool
+  command: >
+    zpool destroy
+    {{ item["pool_name"] }}
+  when:
+    - item["pool_state"] | default('present') == 'absent'
+  loop: "{{ zfs_pools }}"
+  changed_when: false
+
+- name: set ZFS pool properties
+  tags: debug
+  command: >
+    zfs set
+    {{ item["pool_attr"] | join(' ') }}
+    {{ item["pool_name"] }}
+  loop: "{{ zfs_pools }}"
+  when:
+    - zfs_pools is defined
+    - item["pool_state"] | default('present') == 'present'
+  changed_when: false
+
+- name: mount pools
+  command: |
+    zfs mount -a
+  changed_when: false
+
+- name: share pools
+  command: |
+    zfs share -a
+  changed_when: false
+
+- name: mount all mountpoints
+  command: |
+    mount -a
+  changed_when: false
