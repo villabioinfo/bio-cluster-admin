@@ -1,0 +1,7 @@
+---
+# tasks file for forward_keys
+- name: Deploy SSH Key
+  ansible.posix.authorized_key:
+    user: "{{ admin_user.0.username }}"
+    key: "{{ lookup('file', '/home/{{ local_user.username }}/.ssh/{{ admin_user.0.username }}.pub') }}"
+    state: present
