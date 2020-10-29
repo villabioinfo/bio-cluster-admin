@@ -1,0 +1,10 @@
+---
+- name: Converge
+  hosts: all
+
+- import_playbook: ../../main.yaml
+
+#  tasks:
+#    - name: "Include ansible-cluster"
+#      include_role:
+#        name: "ansible-cluster"
