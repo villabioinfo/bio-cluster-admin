@@ -1,0 +1,34 @@
+---
+# tasks file for sys_pkgs
+- name: Update cache
+  ansible.builtin.apt:
+    update_cache: true
+  changed_when: false
+
+- name: Dist upgrade
+  ansible.builtin.apt:
+    upgrade: dist
+  notify:
+    - update-initramfs
+    - update-grub
+
+- name: Install system packages
+  ansible.builtin.apt:
+    name: "{{ apt_packages }}"
+    state: latest
+
+- name: Check if a reboot is needed
+  stat:
+    path: /var/run/reboot-required
+    get_md5: no
+  register: reboot_required_file
+
+- name: Notify reboot
+  debug:
+    msg: |
+      Reboot notified
+  when: reboot_required_file.stat.exists
+  notify: reboot-server
+
+# - name: flush handlers
+#  meta: flush_handlers

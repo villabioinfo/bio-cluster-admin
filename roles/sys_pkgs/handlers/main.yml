@@ -1,0 +1,17 @@
+---
+# handlers file for sys_pkgs
+- name: update-grub
+  command: /usr/sbin/update-grub
+  changed_when: false
+  ignore_errors: true
+
+- name: update-initramfs
+  command: /usr/sbin/update-initramfs -c -k all
+  changed_when: false
+  ignore_errors: true
+
+- name: reboot-server
+  reboot:
+    msg: "Maintenance reboot, installing system updates"
+    post_reboot_delay: 30
+    reboot_timeout: 900
