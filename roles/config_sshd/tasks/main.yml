@@ -7,6 +7,8 @@
     line: "PasswordAuthentication yes"
     state: present
     backup: true
+  notify:
+    - restart ssh
 
 - name: Disable Root Login
   ansible.builtin.lineinfile:
@@ -15,5 +17,35 @@
     line: "PermitRootLogin no"
     state: present
     backup: true
-  notify: 
+  notify:
+    - restart ssh
+
+- name: Disable empty password
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitEmptyPasswords'
+    line: "PermitEmptyPasswords no"
+    state: present
+    backup: true
+  notify:
+    - restart ssh
+
+- name: Define SSH port
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^Port'
+    line: "Port {{ ansible_port | default('22') }}"
+    state: present
+    backup: true
+  notify:
+    - restart ssh
+
+- name: Activate pre-login banner
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^Banner'
+    line: "Banner /etc/issue.net"
+    state: present
+    backup: true
+  notify:
     - restart ssh

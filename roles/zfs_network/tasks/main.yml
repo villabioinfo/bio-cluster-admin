@@ -1,9 +1,11 @@
 ---
 # tasks file for zfs_network
 - name: Install Deps
-  apt:
-    name: zfsutils-linux
+  package:
+    name:
+      - zfsutils-linux
     state: latest
+  ignore_errors: true
 
 - name: force import if system reinstalled
   command: |
@@ -46,7 +48,7 @@
 
 - name: Upgrade ZFS pool
   command: >
-     zpool upgrade
+    zpool upgrade
     {{ item["pool_name"] }}
   when:
     - item["pool_state"] | default('present') == 'absent'
@@ -80,3 +82,4 @@
   command: |
     mount -a
   changed_when: false
+  ignore_errors: true
