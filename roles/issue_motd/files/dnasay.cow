@@ -1,0 +1,13 @@
+##
+## It's a DNA cow
+##
+$the_cow = <<EOC;
+              $thoughts
+               $thoughts
+                $thoughts
+O       o O       o O       o O       o O       o O       o
+| O   o | | O   o | | O   o | | O   o | | O   o | | O   o |
+| | O | | | | O | | | | O | | | | O | | | | O | | | | O | |
+| o   O | | o   O | | o   O | | o   O | | o   O | | o   O |
+o       O o       O o       O o       O o       O o       O
+EOC

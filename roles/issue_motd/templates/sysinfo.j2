@@ -1,0 +1,18 @@
+#!/bin/bash
+
+W="\e[0;39m"
+G="\e[1;32m"
+
+IFS=" " read USED TOTAL <<<$(free -htm --si | grep "Mem" | awk '{ print $3,$2 }')
+
+CPU_LOAD=$(echo "100 - $(iostat -c | grep -A 1 avg-cpu | grep -v avg-cpu | awk '{ print $6 }')" | bc)
+
+PROCESSOR_COUNT=`grep -ioP 'processor\t:' /proc/cpuinfo | wc -l`
+
+echo -e "
+${W}system info:
+$W  OS.....: $W`cat /etc/*release | grep "PRETTY_NAME" | cut -d "=" -f 2- | sed 's/"//g'`
+$W  Kernel.: $W`uname -sr`
+$W  CPU....: $G${CPU_LOAD}% ${W}on $PROCESSOR_COUNT$W vCPUs
+$W  Memory.: $G${USED}B$W used of $G${TOTAL}B$W total$W
+"

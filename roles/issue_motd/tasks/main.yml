@@ -1,0 +1,194 @@
+---
+# tasks file for issue_motd
+- name: Install MOTD dependencies
+  ansible.builtin.package:
+    name:
+      - figlet
+      - toilet
+      - toilet-fonts
+      - update-motd
+      - fortune
+      - cowsay
+      - lolcat
+      - sysstat
+      - bc
+      - locales
+    state: latest
+
+- name: generate locale
+  command: |
+    /usr/sbin/locale-gen en_US.UTF-8
+  changed_when: false
+
+- name: Add pre-login message content
+  ansible.builtin.copy:
+    dest: "/etc/{{ item }}"
+    content: |
+      ###############################################################
+      #                 Authorized access only!                     #
+      #   If you inadvertently tried to log in, don't do it again.  #
+      #     All tentative logins and connections are monitored,     #
+      #        legal actions may be taken if you proceed.           #
+      ###############################################################
+  loop:
+    - issue
+    - issue.net
+
+- name: Activate pre-login banner
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^Banner'
+    line: "Banner /etc/issue.net"
+    state: present
+  notify:
+    - restart ssh
+
+- name: Activate ssh PrintMotd
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PrintMotd'
+    line: "PrintMotd yes"
+    state: present
+  notify:
+    - restart ssh
+
+- name: check if backup dir is empty
+  find:
+    paths: /etc/update-motd.d_backup/
+  register: backup_empty
+
+- name: Backup Original /etc/update-motd.d/
+  ansible.builtin.copy:
+    remote_src: true
+    src: /etc/update-motd.d/
+    dest: /etc/update-motd.d_backup/
+    mode: preserve
+    force: true
+  when: backup_empty.matched == 0
+
+- name: Disable older /etc/update-motd.d/ content
+  tags: motd
+  ansible.builtin.file:
+    path: /etc/update-motd.d/
+    state: directory
+    mode: 0644
+    owner: root
+    group: root
+    recurse: true
+  changed_when: false
+
+- name: Restore permission /etc/update-motd.d/
+  tags: motd
+  ansible.builtin.file:
+    path: /etc/update-motd.d/
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+    recurse: false
+  changed_when: false
+
+- name: Disable Ubuntu dynamic motd-news
+  ansible.builtin.lineinfile:
+    path: /etc/default/motd-news
+    regexp: '^ENABLED=1'
+    line: "ENABLE=0"
+    state: present
+  ignore_errors: true
+
+- name: Add MOTD content - hostname
+  tags: motd
+  ansible.builtin.copy:
+    dest: "/etc/update-motd.d/00-hostname"
+    content: |
+      #!/bin/bash
+      echo "    Welcome to"
+      toilet -t -f mono12 -F gay " {{ motd_title }}"
+      toilet -t -f future -F gay "  {{ motd_subtitle }}"
+      echo ""
+    mode: 0755
+    owner: root
+    group: root
+  changed_when: false
+
+- name: Add MOTD content - sysinfo
+  tags: motd
+  ansible.builtin.template:
+    dest: /etc/update-motd.d/10-sysinfo
+    src: sysinfo.j2
+    mode: 0755
+    owner: root
+    group: root
+  changed_when: false
+
+- name: Add MOTD content - discspace
+  tags: motd
+  ansible.builtin.template:
+    dest: /etc/update-motd.d/20-discspace
+    src: discspace.j2
+    mode: 0755
+    owner: root
+    group: root
+  changed_when: false
+
+- name: Add MOTD content - services
+  tags: never
+  ansible.builtin.template:
+    dest: /etc/update-motd.d/30-services
+    src: services.j2
+    mode: 0755
+    owner: root
+    group: root
+  when: motd_services is defined
+  changed_when: false
+
+- name: copy custom fortune file
+  tags: motd
+  ansible.builtin.copy:
+    src: "{{ motd_fortune }}_fortune"
+    dest: "/usr/share/games/fortunes/{{ motd_fortune }}"
+    mode: 0644
+    owner: root
+    group: root
+  when: motd_fortune is defined
+
+- name: index fortune file
+  tags: motd
+  command: >
+    /usr/bin/strfile -c %
+    /usr/share/games/fortunes/{{ motd_fortune }}
+    /usr/share/games/fortunes/{{motd_fortune}}.dat
+  changed_when: false
+
+- name: copy custom fortune file
+  tags: motd
+  ansible.builtin.copy:
+    src: "dnasay.cow"
+    dest: "/usr/share/cowsay/cows/dnasay.cow"
+    mode: 0644
+    owner: root
+    group: root
+  when: motd_fortune is defined
+  
+- name: Add MOTD content - dnasay
+  tags: motd
+  ansible.builtin.copy:
+    dest: /etc/update-motd.d/60-dnasay
+    content: |
+      #!/bin/bash
+      /usr/games/fortune {{ motd_fortune }} \
+        | /usr/games/cowsay -f dnasay \
+        | /usr/games/lolcat -f
+    mode: 0755
+    owner: root
+    group: root
+  when: motd_fortune is defined
+  changed_when: false
+
+- name: update MOTD
+  command: "{{ item }}" 
+  changed_when: false
+  loop:
+    - /usr/lib/update-notifier/update-motd-updates-available
+    - run-parts /etc/update-motd.d/
+    - /usr/sbin/update-motd

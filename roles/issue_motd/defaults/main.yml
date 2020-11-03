@@ -1,0 +1,10 @@
+---
+# defaults file for issue_motd
+
+motd_title: "{{ ansible_hostname }}"
+
+motd_subtitle: My organization
+
+motd_mountpoints:
+  - /
+  - /home
