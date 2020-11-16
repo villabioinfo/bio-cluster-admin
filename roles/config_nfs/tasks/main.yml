@@ -4,13 +4,16 @@
     name:
       - nfs-kernel-server
       - nfs-common
+      - autofs
     state: latest
 
-- name: "Create /data/ host directorys"
+- name: Create NFS mountpoints - clients
   file:
-    path: "/data/{{ item }}"
+    path: "{{ item.mountpoint }}"
     state: directory
-  with_items: "{{ play_hosts }}"
+  loop: "{{ autofs_mounts }}"
+  when: autofs_mounts is defined
+  ignore_errors: true
 
 - name: Add exports to /etc/exports
   blockinfile:
@@ -37,8 +40,14 @@
     state: restarted
   when: etc_exports_edit.changed
 
+- name: Export NFS
+  command: |
+    exportfs -a
+  changed_when: false
+  ignore_errors: true
+  
 - name: Edit fstab on NFS client
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: /etc/fstab
     block: |
       {% if etc_fstab_nfs is defined %}
@@ -47,6 +56,38 @@
     create: true
     state: present
   register: fstab_edit
+
+- name: Config idmap
+  ansible.builtin.lineinfile:
+    path: /etc/idmapd.conf
+    regexp: 'Domain ='
+    line: "Domain = {{ host_domain }}"
+    state: present
+  when: host_domain is defined
+
+- name: Config autoFS - edit /etc/auto.mount
+  ansible.builtin.lineinfile:
+    path: /etc/auto.master
+    regexp: '^/-\s+/etc/auto.mount'
+    line: "/-    /etc/auto.mount"
+    state: present
+  when: autofs_mounts is defined
+
+- name: Config autoFS - mountpoints
+  ansible.builtin.blockinfile:
+    dest: /etc/auto.mount
+    marker: "# {mark} ANSIBLE MANAGED - {{ item.host }}:{{ item.origin }} "
+    block: |
+      {{ item.mountpoint }}   {{item.options}}  {{ item.host }}:{{ item.origin }}
+    create: true
+    mode: 0644
+    owner: root
+    group: root
+    state: present
+  loop: "{{ autofs_mounts }}"
+  when: autofs_mounts is defined
+  notify:
+    - restart autofs
 
 - name: Reload client mountpoints
   command: |
