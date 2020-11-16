@@ -1,0 +1,59 @@
+---
+# tasks file for manage_users
+- name: Determine available groups
+  getent:
+    database: group
+  
+- name: Determine available users
+  getent:
+    database: passwd
+
+- name: Create group for each user
+  ansible.builtin.group:
+    name: "{{ item.username }}"
+    gid: "{{ item.uid }}"
+  loop: "{{ server_users }}"
+
+- name: Create User
+  ansible.builtin.user:
+    append: true
+    name: "{{ item.username }}"
+    group: "{{ item.username }}"
+    groups: "{% if item.groups is defined %}{{ item.groups }}{% endif %}"
+    shell: "/bin/bash"
+    state: present
+    system: false
+    uid: "{{ item.uid }}"
+    password: "{{ item.password }}"
+  loop: "{{ server_users }}"
+  when: server_users is defined
+
+- name: set ownership of home directory
+  ansible.builtin.file:
+    path: "/home/{{ item.username }}"
+    state: directory
+    owner: "{{ item.username }}"
+    group: "{{ item.username }}"
+    recurse: false
+  loop: "{{ server_users }}"
+  when: server_users is defined
+  ignore_errors: true
+  changed_when: false
+  delegate_to: "{{ control_plane }}"
+
+- name: add users to docker group
+  ansible.builtin.user:
+    append: true
+    name: "{{ item }}"
+    groups: docker
+  loop: "{{ additional_groups.sudo }}"
+  when: additional_groups.docker is defined
+  ignore_errors: true
+
+- name: add users sudo group
+  ansible.builtin.user:
+    append: true
+    name: "{{ item }}"
+    groups: sudo
+  loop: "{{ additional_groups.sudo }}"
+  when: additional_groups.sudo is defined
