@@ -52,6 +52,30 @@
   notify:
     - restart ssh
 
+- name: Activate motd rerun on login
+  ansible.builtin.lineinfile:
+    path: "/etc/pam.d/{{ item }}"
+    regexp: '^session\s+optional\s+pam_motd.so\s+noupdate'
+    line: "# session optional pam_motd.so noupdate"
+    state: present
+  loop:
+    - login
+    - sshd
+  notify:
+    - restart ssh
+
+- name: Activate usage of dynamic motd
+  ansible.builtin.lineinfile:
+    path: "/etc/pam.d/{{ item }}"
+    regexp: '^session\s+optional\s+pam_motd.so\s+motd=/run/motd.dynamic'
+    line: "session optional pam_motd.so motd=/run/motd.dynamic"
+    state: present
+  loop:
+    - login
+    - sshd
+  notify:
+    - restart ssh
+
 - name: check if backup dir is empty
   find:
     paths: /etc/update-motd.d_backup/
@@ -102,6 +126,7 @@
     dest: "/etc/update-motd.d/00-hostname"
     content: |
       #!/bin/bash
+      echo ""
       echo "    Welcome to"
       toilet -t -f mono12 -F gay " {{ motd_title }}"
       toilet -t -f future -F gay "  {{ motd_subtitle }}"
@@ -176,6 +201,7 @@
     dest: /etc/update-motd.d/60-dnasay
     content: |
       #!/bin/bash
+      echo ""
       /usr/games/fortune {{ motd_fortune }} \
         | /usr/games/cowsay -f dnasay \
         | /usr/games/lolcat -f
